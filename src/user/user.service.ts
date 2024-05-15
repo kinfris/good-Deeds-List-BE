@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { QueryDto } from './dto/query.dto';
+import { findUsersSelectDto } from './dto/search.dto';
 
 @Injectable()
 export class UserService {
@@ -19,59 +21,50 @@ export class UserService {
     return this.userRepository.save(userEntity);
   }
 
-  async findAll() {
-    return this.userRepository.find({
-      select: {
-        id: true,
-        displayName: true,
-        email: true,
-        friends: {
-          id: true,
-          displayName: true,
-          email: true,
-        },
-      },
+  async findAll(query: QueryDto) {
+    const limit = +query.limit || 10;
+    const page = +query.page || 1;
+    const skip = (page - 1) * limit;
+
+    const [users, totalCount] = await this.userRepository.findAndCount({
+      select: findUsersSelectDto,
       relations: ['friends'],
+      take: limit,
+      skip,
     });
+
+    return {
+      data: users,
+      totalCount,
+    };
   }
 
   findOne(id: number) {
     return this.userRepository.findOne({
-      select: {
-        id: true,
-        displayName: true,
-        email: true,
-        friends: {
-          id: true,
-          displayName: true,
-          email: true,
-        },
-      },
+      select: findUsersSelectDto,
       relations: ['friends'],
       where: { id },
     });
   }
 
-  async findByEmail(email: string) {
-    return this.userRepository.findOne({ where: { email } });
+  async findByEmail(email: string, displayName: string = '') {
+    return this.userRepository.findOne({ where: [{ email }, { displayName }] });
   }
 
-  async deleteUser(id: number, userId: number) {
-    if (id !== userId) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-    }
-    const deleteResult = await this.userRepository.delete(userId);
+  async findByName(displayName: string = '') {
+    return this.userRepository.findOne({ where: { displayName } });
+  }
 
+  async deleteUser(userId: number) {
+    const deleteResult = await this.userRepository.delete(userId);
+    console.log(deleteResult);
     if (deleteResult.affected === 0) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
-    return 'user deleted';
+    return;
   }
 
-  async updateUser(id: number, userId: number, updateUserDto: UpdateUserDto) {
-    if (id !== userId) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-    }
+  async updateUser(userId: number, updateUserDto: UpdateUserDto) {
     const userRow = await this.userRepository
       .createQueryBuilder()
       .update(User, updateUserDto)

@@ -28,15 +28,21 @@ export class GoodDeedController {
     return this.goodDeedService.create(user.id, createGoodDeedDto);
   }
 
-  @Get()
+  @Get('all')
   findAll() {
     return this.goodDeedService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':userId')
-  findOne(@Param('userId') userId: string, @RequestUser() user: User) {
+  findByUser(@Param('userId') userId: string, @RequestUser() user: User) {
     return this.goodDeedService.findByUser(+userId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('')
+  findByAuthorizedUser(@RequestUser() user: User) {
+    return this.goodDeedService.findByAuthorizedUser(user.id);
   }
 
   @UseGuards(JwtAuthGuard)

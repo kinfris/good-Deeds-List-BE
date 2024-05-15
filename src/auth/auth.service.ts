@@ -1,9 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -17,13 +12,25 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(userDto: CreateUserDto) {
+  async login(userDto: Partial<CreateUserDto>) {
     const user = await this.validateUser(userDto);
-    return this.generateToken(user);
+    const { token } = await this.generateToken(user);
+    const candidate = await this.userService.findByEmail(userDto.email);
+    return {
+      token,
+      user: {
+        email: candidate.email,
+        displayName: candidate.displayName,
+        id: candidate.id,
+      },
+    };
   }
 
   async registration(userDto: CreateUserDto) {
-    const candidate = await this.userService.findByEmail(userDto.email);
+    const candidate = await this.userService.findByEmail(
+      userDto.email,
+      userDto.displayName,
+    );
     if (candidate) {
       throw new HttpException(
         'Пользователь с таким email существует',
@@ -31,12 +38,22 @@ export class AuthService {
       );
     }
     const hashPassword = await bcrypt.hash(userDto.password, 5);
+
     const user = await this.userService.createUser({
       ...userDto,
       password: hashPassword,
     });
 
-    return this.generateToken(user);
+    const { token } = await this.generateToken(user);
+
+    return {
+      token,
+      user: {
+        email: user.email,
+        displayName: user.displayName,
+        id: user.id,
+      },
+    };
   }
 
   private async generateToken(user: User) {
@@ -50,18 +67,19 @@ export class AuthService {
     };
   }
 
-  private async validateUser(userDto: CreateUserDto) {
+  private async validateUser(userDto: Partial<CreateUserDto>) {
     const user = await this.userService.findByEmail(userDto.email);
-    console.log(user);
+
     const passwordEquals = await bcrypt.compare(
       userDto.password,
-      user.passwordHash,
+      user?.passwordHash || '',
     );
     if (user && passwordEquals) {
       return user;
     }
-    throw new UnauthorizedException({
-      message: 'Некорректный емайл или пароль',
-    });
+    throw new HttpException(
+      'Неверный email или пароль',
+      HttpStatus.UNAUTHORIZED,
+    );
   }
 }

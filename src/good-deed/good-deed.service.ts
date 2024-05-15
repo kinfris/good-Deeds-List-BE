@@ -33,7 +33,11 @@ export class GoodDeedService {
     if (!areUsersFriends) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
-    return this.goodDeedRepository.findOne({ where: { userId } });
+    return this.goodDeedRepository.find({ where: { userId } });
+  }
+
+  async findByAuthorizedUser(userId: number) {
+    return this.goodDeedRepository.find({ where: { userId } });
   }
 
   async update(

@@ -1,7 +1,16 @@
-import { Controller, Post, Body, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Delete,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { UserFriendService } from './user-friend.service';
-import { AddUserFriendDto } from './dto/add-user-friend.dto';
-import { DeleteUserFriendDto } from './dto/delete-user-friend.dto';
+import {
+  AddUserFriendByNameDto,
+  AddUserFriendDto,
+} from './dto/add-user-friend.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User as RequestUser } from '../decorator/user.decorator';
 import { User } from '../user/entities/user.entity';
@@ -17,11 +26,17 @@ export class UserFriendController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete()
-  deleteFriend(
-    @Body() { friendId }: DeleteUserFriendDto,
+  @Post('find')
+  addFriendByName(
+    @Body() { displayName }: AddUserFriendByNameDto,
     @RequestUser() user: User,
   ) {
-    return this.userFriendService.deleteFriend(user.id, friendId);
+    return this.userFriendService.addFriendByName(user.id, displayName);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':friendId')
+  deleteFriend(@Param('friendId') friendId: string, @RequestUser() user: User) {
+    return this.userFriendService.deleteFriend(user.id, +friendId);
   }
 }
