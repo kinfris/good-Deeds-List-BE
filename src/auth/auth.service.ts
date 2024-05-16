@@ -14,6 +14,7 @@ export class AuthService {
 
   async login(userDto: Partial<CreateUserDto>) {
     const user = await this.validateUser(userDto);
+    console.log(user);
     const { token } = await this.generateToken(user);
     const candidate = await this.userService.findByEmail(userDto.email);
     return {

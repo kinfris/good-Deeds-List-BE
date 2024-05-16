@@ -26,18 +26,26 @@ export class GoodDeedService {
   }
 
   async findByUser(userId: number, activeUser: number) {
-    const areUsersFriends = await this.userFriendService.findRelationship(
-      userId,
-      activeUser,
-    );
-    if (!areUsersFriends) {
+    try {
+      const areUsersFriends = await this.userFriendService.findRelationship(
+        userId,
+        activeUser,
+      );
+      if (!areUsersFriends) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+      return this.goodDeedRepository.find({ where: { userId } });
+    } catch (e) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
-    return this.goodDeedRepository.find({ where: { userId } });
   }
 
   async findByAuthorizedUser(userId: number) {
-    return this.goodDeedRepository.find({ where: { userId } });
+    try {
+      return this.goodDeedRepository.find({ where: { userId } });
+    } catch (e) {
+      throw new HttpException('not found', HttpStatus.NOT_FOUND);
+    }
   }
 
   async update(
@@ -45,28 +53,36 @@ export class GoodDeedService {
     updateGoodDeedDto: UpdateGoodDeedDto,
     userId: number,
   ) {
-    const goodDeedRow = await this.goodDeedRepository
-      .createQueryBuilder()
-      .update(GoodDeed, updateGoodDeedDto)
-      .where({ id: goodDeedId, userId })
-      .returning('*')
-      .updateEntity(true)
-      .execute();
+    try {
+      const goodDeedRow = await this.goodDeedRepository
+        .createQueryBuilder()
+        .update(GoodDeed, updateGoodDeedDto)
+        .where({ id: goodDeedId, userId })
+        .returning('*')
+        .updateEntity(true)
+        .execute();
 
-    if (goodDeedRow.affected === 0) {
+      if (goodDeedRow.affected === 0) {
+        throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+      }
+      return goodDeedRow.raw;
+    } catch (e) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
-    return goodDeedRow.raw;
   }
 
   async remove(id: number, userId: number) {
-    const deleteResult = await this.goodDeedRepository.delete({
-      userId,
-      id,
-    });
-    if (deleteResult.affected === 0) {
+    try {
+      const deleteResult = await this.goodDeedRepository.delete({
+        userId,
+        id,
+      });
+      if (deleteResult.affected === 0) {
+        throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+      }
+      return;
+    } catch (e) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
-    return 'goodDeed deleted';
   }
 }

@@ -74,31 +74,39 @@ export class UserFriendService {
   }
 
   async deleteFriend(userId: number, friendId: number) {
-    const deleteResult1 = await this.userFriendRepository.delete({
-      userId,
-      friendId,
-    });
+    try {
+      const deleteResult1 = await this.userFriendRepository.delete({
+        userId,
+        friendId,
+      });
 
-    const deleteResult2 = await this.userFriendRepository.delete({
-      userId: friendId,
-      friendId: userId,
-    });
+      const deleteResult2 = await this.userFriendRepository.delete({
+        userId: friendId,
+        friendId: userId,
+      });
 
-    console.log('deleteResult1 -', deleteResult1);
-    console.log('deleteResult2 -', deleteResult2);
+      console.log('deleteResult1 -', deleteResult1);
+      console.log('deleteResult2 -', deleteResult2);
 
-    if (deleteResult1.affected === 0 || deleteResult2.affected === 0) {
+      if (deleteResult1.affected === 0 || deleteResult2.affected === 0) {
+        throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+      }
+      return;
+    } catch (e) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
-    return 'friend deleted';
   }
 
   findRelationship(userIdOne: number, userIdTwo: number) {
-    return this.userFriendRepository.findOne({
-      where: {
-        userId: userIdOne,
-        friendId: userIdTwo,
-      },
-    });
+    try {
+      return this.userFriendRepository.findOne({
+        where: {
+          userId: userIdOne,
+          friendId: userIdTwo,
+        },
+      });
+    } catch (e) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
   }
 }
